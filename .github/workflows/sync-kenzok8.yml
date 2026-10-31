@@ -33,7 +33,9 @@ jobs:
             rm -rf "$p"
             cp -a "$RUNNER_TEMP/up/$p" "$p"
 
-            [[ -n "$v" ]] && sed -i "s|^PKG_VERSION:=.*|PKG_VERSION:=$v|" "$p/Makefile"
+            if [[ -n "$v" ]]; then
+              sed -i "s|^PKG_VERSION:=.*|PKG_VERSION:=$v|" "$p/Makefile"
+            fi
           done
 
       - name: commit and push
