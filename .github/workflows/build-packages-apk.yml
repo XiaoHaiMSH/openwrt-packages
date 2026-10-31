@@ -19,6 +19,7 @@ env:
     luci-app-dockerman
     openlist2
     luci-app-openlist2
+    luci-app-adguardhome
 
 jobs:
   build-packages:
