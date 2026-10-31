@@ -20,6 +20,7 @@ env:
     openlist2
     luci-app-openlist2
     luci-app-adguardhome
+    luci-app-podman
 
 jobs:
   build-packages:
