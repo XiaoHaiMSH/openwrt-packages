@@ -10,7 +10,7 @@ permissions:
 
 env:
   SYNC_PKGS: |
-    luci-app-adguardhome
+    luci-app-adguardhome@2026112
     luci-app-openlist2
     openlist2
 
@@ -25,17 +25,23 @@ jobs:
         run: |
           git clone --depth=1 https://github.com/kenzok8/openwrt-packages "$RUNNER_TEMP/up"
 
-          for p in $SYNC_PKGS; do
+          for item in $SYNC_PKGS; do
+            p="${item%%@*}"
+            v=""; [[ "$item" == *@* ]] && v="${item#*@}"
+
             [[ -d "$RUNNER_TEMP/up/$p" ]] || { echo "上游没有 $p"; exit 1; }
             rm -rf "$p"
             cp -a "$RUNNER_TEMP/up/$p" "$p"
+
+            [[ -n "$v" ]] && sed -i "s|^PKG_VERSION:=.*|PKG_VERSION:=$v|" "$p/Makefile"
           done
 
       - name: commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A $SYNC_PKGS
+          pkgs="$(for i in $SYNC_PKGS; do echo "${i%%@*}"; done)"
+          git add -A $pkgs
           git diff --cached --quiet && exit 0
           sha="$(git -C "$RUNNER_TEMP/up" rev-parse --short HEAD)"
           git commit -m "chore: 同步 kenzok8/openwrt-packages ($sha)"
