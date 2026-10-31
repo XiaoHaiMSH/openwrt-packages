@@ -1,0 +1,45 @@
+name: sync packages podman
+
+on:
+  schedule:
+    - cron: '20 20 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  UPSTREAM: https://github.com/Zerogiven-OpenWRT-Packages/luci-app-podman
+  TARGET_DIR: luci-app-podman
+  PKG_VERSION: ""
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v7
+
+      - name: sync from upstream
+        run: |
+          git clone --depth=1 "$UPSTREAM" "$RUNNER_TEMP/up"
+          rm -rf "$RUNNER_TEMP/up/.git" "$RUNNER_TEMP/up/.github"
+
+          rm -rf "$TARGET_DIR"
+          cp -a "$RUNNER_TEMP/up" "$TARGET_DIR"
+
+          sed -i -E '/^PKG_BUILD_DEPENDS[[:space:]]*:=[[:space:]]*podman[[:space:]]*$/d' "$TARGET_DIR/Makefile"
+
+          if [[ -n "$PKG_VERSION" ]]; then
+            sed -i "s|^PKG_VERSION:=.*|PKG_VERSION:=$PKG_VERSION|" "$TARGET_DIR/Makefile"
+          fi
+
+      - name: commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A "$TARGET_DIR"
+          git diff --cached --quiet && exit 0
+          sha="$(git ls-remote "$UPSTREAM" HEAD | cut -c1-7)"
+          git commit -m "chore: 同步 luci-app-podman ($sha)"
+          git push
