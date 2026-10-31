@@ -10,6 +10,7 @@ permissions:
 
 env:
   SYNC_PKGS: |
+    luci-app-adguardhome
     luci-app-openlist2
     openlist2
 
