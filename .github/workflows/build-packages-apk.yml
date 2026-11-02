@@ -18,7 +18,11 @@ env:
     luci-lib-docker
     luci-app-dockerman
     openlist2
+    mosdns
+    sing-box
     luci-app-openlist2
+    luci-app-mosdns
+    luci-app-homeproxy
     luci-app-podman
 
 jobs:

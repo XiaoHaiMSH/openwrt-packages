@@ -11,7 +11,11 @@ permissions:
 env:
   SYNC_PKGS: |
     luci-app-openlist2
+    luci-app-mosdns
+    luci-app-homeproxy
     openlist2
+    mosdns
+    sing-box
 
 jobs:
   sync:
@@ -20,9 +24,9 @@ jobs:
       - name: checkout repository
         uses: actions/checkout@v7
 
-      - name: sync from kenzok8/openwrt-packages
+      - name: sync from kenzok8/small-package
         run: |
-          git clone --depth=1 https://github.com/kenzok8/openwrt-packages "$RUNNER_TEMP/up"
+          git clone --depth=1 https://github.com/kenzok8/small-package "$RUNNER_TEMP/up"
 
           for item in $SYNC_PKGS; do
             p="${item%%@*}"
@@ -45,5 +49,5 @@ jobs:
           git add -A $pkgs
           git diff --cached --quiet && exit 0
           sha="$(git -C "$RUNNER_TEMP/up" rev-parse --short HEAD)"
-          git commit -m "chore: 同步 kenzok8/openwrt-packages ($sha)"
+          git commit -m "chore: 同步 kenzok8/small-package ($sha)"
           git push
