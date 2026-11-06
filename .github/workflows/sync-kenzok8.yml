@@ -10,8 +10,8 @@ permissions:
 
 env:
   SYNC_PKGS: |
-    luci-app-openlist2@date
-    luci-app-mosdns@date
+    luci-app-openlist2
+    luci-app-mosdns
     luci-app-homeproxy
     openlist2
     mosdns
