@@ -1,0 +1,120 @@
+name: sync packages adguardhome
+
+on:
+  schedule:
+    - cron: '30 20 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  UPSTREAM: https://github.com/stevenjoezhang/luci-app-adguardhome
+  TARGET_DIR: luci-app-adguardhome
+  PKG_VERSION: ""
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v7
+
+      - name: sync from upstream
+        run: |
+          has_var() { grep -qE "^$2[[:space:]]*:?=" "$1"; }
+
+          get_var() {
+            grep -m1 -E "^$2[[:space:]]*:?=" "$1" \
+              | sed -E 's/^[^=]*=[[:space:]]*//; s/[[:space:]]+$//' || true
+          }
+
+          set_var() {
+            sed -i -E "s|^$2[[:space:]]*:?=.*|$2:=$3|" "$1"
+          }
+
+          insert_after() {
+            local tmp; tmp="$(mktemp)"
+            awk -v re="$2" -v t="$3" '{print} !d && $0 ~ re {print t; d=1}' "$1" > "$tmp"
+            cat "$tmp" > "$1"; rm -f "$tmp"
+          }
+
+          ensure_fields() {
+            local mk="$1" date_mode="$2" p="$3"
+            if ! has_var "$mk" PKG_VERSION; then
+              if [[ "$date_mode" == 1 ]]; then
+                insert_after "$mk" '^include .*rules\.mk' 'PKG_VERSION:=0'
+              else
+                echo "::warning::$p has no PKG_VERSION and date mode is not used, skipping field patching"
+                return 1
+              fi
+            fi
+            has_var "$mk" PKG_RELEASE \
+              || insert_after "$mk" '^PKG_VERSION[ \t]*:?=' 'PKG_RELEASE:=1'
+            has_var "$mk" PKG_PO_VERSION \
+              || insert_after "$mk" '^PKG_RELEASE[ \t]*:?=' 'PKG_PO_VERSION:=$(PKG_VERSION)-r$(PKG_RELEASE)'
+            return 0
+          }
+
+          today="$(date +%Y%m%d)"
+          mk="$TARGET_DIR/Makefile"
+
+          old_ver=""; old_rel=""
+          if [[ -f "$mk" ]]; then
+            old_ver="$(get_var "$mk" PKG_VERSION)"
+            old_rel="$(get_var "$mk" PKG_RELEASE)"
+          fi
+
+          git clone --depth=1 "$UPSTREAM" "$RUNNER_TEMP/up"
+          rm -rf "$RUNNER_TEMP/up/.git" "$RUNNER_TEMP/up/.github"
+
+          rm -rf "$TARGET_DIR"
+          cp -a "$RUNNER_TEMP/up" "$TARGET_DIR"
+
+          [[ -f "$mk" ]] || { echo "::error::$TARGET_DIR/Makefile not found"; exit 1; }
+
+          is_luci=0
+          grep -q 'luci\.mk' "$mk" && is_luci=1
+
+          if [[ "$PKG_VERSION" == "date" ]]; then
+            if [[ "$is_luci" != 1 ]]; then
+              echo "::error::$TARGET_DIR is not a luci package (no luci.mk in Makefile), date mode is not allowed"
+              exit 1
+            fi
+            ensure_fields "$mk" 1 "$TARGET_DIR"
+
+            if [[ -n "$old_ver" ]]; then
+              set_var "$mk" PKG_VERSION "$old_ver"
+              [[ -n "$old_rel" ]] && set_var "$mk" PKG_RELEASE "$old_rel"
+            fi
+            git add -A -- "$TARGET_DIR"
+            if git diff --cached --quiet -- "$TARGET_DIR"; then
+              echo "$TARGET_DIR: no upstream update, version stays $old_ver-r$old_rel"
+            else
+              if [[ "$old_ver" == "$today" && "$old_rel" =~ ^[0-9]+$ ]]; then
+                new_rel=$((old_rel + 1))
+              else
+                new_rel=1
+              fi
+              set_var "$mk" PKG_VERSION "$today"
+              set_var "$mk" PKG_RELEASE "$new_rel"
+              echo "$TARGET_DIR: updated, version -> $today-r$new_rel"
+            fi
+          else
+            if [[ -n "$PKG_VERSION" ]]; then
+              set_var "$mk" PKG_VERSION "$PKG_VERSION"
+            fi
+            if [[ "$is_luci" == 1 ]]; then
+              ensure_fields "$mk" 0 "$TARGET_DIR" || true
+            fi
+          fi
+
+      - name: commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A "$TARGET_DIR"
+          git diff --cached --quiet && exit 0
+          sha="$(git ls-remote "$UPSTREAM" HEAD | cut -c1-7)"
+          git commit -m "chore: 同步 luci-app-adguardhome ($sha)"
+          git push
