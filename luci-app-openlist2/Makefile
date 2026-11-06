@@ -6,7 +6,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-openlist2
-PKG_VERSION:=20261106
+PKG_VERSION:=1.0.3
 PKG_RELEASE:=1
 PKG_PO_VERSION:=$(PKG_VERSION)-r$(PKG_RELEASE)
 
