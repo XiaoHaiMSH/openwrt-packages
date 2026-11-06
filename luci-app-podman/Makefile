@@ -1,8 +1,9 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME          := luci-app-podman
-PKG_VERSION       := 2.3.4
-PKG_RELEASE       := 1
+PKG_VERSION:=20261106
+PKG_RELEASE:=1
+PKG_PO_VERSION:=$(PKG_VERSION)-r$(PKG_RELEASE)
 PKG_URL           := https://github.com/Zerogiven-OpenWRT-Packages/luci-app-podman
 PKG_MAINTAINER    := Christopher Söllinger <christopher.soellinger@gmail.com>
 PKG_LICENSE       := Apache-2.0
