@@ -1,0 +1,26 @@
+name: _Sync
+
+on:
+  workflow_call:
+    inputs:
+      upstream:
+        type: string
+        required: true
+      packages:
+        type: string
+        required: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v7
+
+      - name: sync from upstream
+        env:
+          UPSTREAM: ${{ inputs.upstream }}
+          PACKAGES: ${{ inputs.packages }}
+        run: bash .github/scripts/sync-pkg.sh

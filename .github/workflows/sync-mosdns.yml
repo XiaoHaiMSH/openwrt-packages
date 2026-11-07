@@ -8,121 +8,12 @@ on:
 permissions:
   contents: write
 
-env:
-  SYNC_PKGS: |
-    luci-app-mosdns@date
-    mosdns
-    geo2txt
-
 jobs:
   sync:
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout repository
-        uses: actions/checkout@v7
-
-      - name: sync from sbwml/luci-app-mosdns
-        run: |
-          has_var() { grep -qE "^$2[[:space:]]*:?=" "$1"; }
-
-          get_var() {
-            grep -m1 -E "^$2[[:space:]]*:?=" "$1" \
-              | sed -E 's/^[^=]*=[[:space:]]*//; s/[[:space:]]+$//' || true
-          }
-
-          set_var() {
-            sed -i -E "s|^$2[[:space:]]*:?=.*|$2:=$3|" "$1"
-          }
-
-          insert_after() {
-            local tmp; tmp="$(mktemp)"
-            awk -v re="$2" -v t="$3" '{print} !d && $0 ~ re {print t; d=1}' "$1" > "$tmp"
-            cat "$tmp" > "$1"; rm -f "$tmp"
-          }
-
-          ensure_fields() {
-            local mk="$1" date_mode="$2" p="$3"
-            if ! has_var "$mk" PKG_VERSION; then
-              if [[ "$date_mode" == 1 ]]; then
-                insert_after "$mk" '^include .*rules\.mk' 'PKG_VERSION:=0'
-              else
-                echo "::warning::$p has no PKG_VERSION and @date is not used, skipping field patching"
-                return 1
-              fi
-            fi
-            has_var "$mk" PKG_RELEASE \
-              || insert_after "$mk" '^PKG_VERSION[ \t]*:?=' 'PKG_RELEASE:=1'
-            has_var "$mk" PKG_PO_VERSION \
-              || insert_after "$mk" '^PKG_RELEASE[ \t]*:?=' 'PKG_PO_VERSION:=$(PKG_VERSION)-r$(PKG_RELEASE)'
-            return 0
-          }
-
-          today="$(date +%Y%m%d)"
-          git clone --depth=1 https://github.com/sbwml/luci-app-mosdns "$RUNNER_TEMP/up"
-
-          for item in $SYNC_PKGS; do
-            p="${item%%@*}"
-            v=""; [[ "$item" == *@* ]] && v="${item#*@}"
-
-            [[ -d "$RUNNER_TEMP/up/$p" ]] || { echo "::error::$p not found in upstream"; exit 1; }
-
-            old_ver=""; old_rel=""
-            if [[ -f "$p/Makefile" ]]; then
-              old_ver="$(get_var "$p/Makefile" PKG_VERSION)"
-              old_rel="$(get_var "$p/Makefile" PKG_RELEASE)"
-            fi
-
-            rm -rf "$p"
-            cp -a "$RUNNER_TEMP/up/$p" "$p"
-            mk="$p/Makefile"
-            [[ -f "$mk" ]] || continue
-
-            is_luci=0
-            grep -q 'luci\.mk' "$mk" && is_luci=1
-
-            if [[ "$v" == "date" ]]; then
-              if [[ "$is_luci" != 1 ]]; then
-                echo "::error::$p is not a luci package (no luci.mk in Makefile), @date is not allowed"
-                exit 1
-              fi
-              ensure_fields "$mk" 1 "$p"
-
-              if [[ -n "$old_ver" ]]; then
-                set_var "$mk" PKG_VERSION "$old_ver"
-                [[ -n "$old_rel" ]] && set_var "$mk" PKG_RELEASE "$old_rel"
-              fi
-              git add -A -- "$p"
-              if git diff --cached --quiet -- "$p"; then
-                echo "$p: no upstream update, version stays $old_ver-r$old_rel"
-                continue
-              fi
-
-              if [[ "$old_ver" == "$today" && "$old_rel" =~ ^[0-9]+$ ]]; then
-                new_rel=$((old_rel + 1))
-              else
-                new_rel=1
-              fi
-              set_var "$mk" PKG_VERSION "$today"
-              set_var "$mk" PKG_RELEASE "$new_rel"
-              echo "$p: updated, version -> $today-r$new_rel"
-              continue
-            fi
-
-            if [[ -n "$v" ]]; then
-              set_var "$mk" PKG_VERSION "$v"
-            fi
-            if [[ "$is_luci" == 1 ]]; then
-              ensure_fields "$mk" 0 "$p" || true
-            fi
-          done
-
-      - name: commit and push
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          pkgs="$(for i in $SYNC_PKGS; do echo "${i%%@*}"; done)"
-          git add -A $pkgs
-          git diff --cached --quiet && exit 0
-          sha="$(git -C "$RUNNER_TEMP/up" rev-parse --short HEAD)"
-          git commit -m "chore: 同步 sbwml/luci-app-mosdns ($sha)"
-          git push
+    uses: ./.github/workflows/_Sync.yml
+    with:
+      upstream: https://github.com/sbwml/luci-app-mosdns
+      packages: |
+        luci-app-mosdns@date
+        mosdns
+        geo2txt

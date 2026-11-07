@@ -1,4 +1,4 @@
-name: auto update docker-toolchain
+name: update docker-toolchain
 
 on:
   schedule:

@@ -1,4 +1,4 @@
-name: auto-clean
+name: Auto-Clean
 
 on:
   schedule:
