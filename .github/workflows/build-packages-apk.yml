@@ -17,9 +17,11 @@ env:
     docker-compose
     luci-lib-docker
     luci-app-dockerman
+    lucky
     openlist2
     mosdns
     geo2txt
+    luci-app-lucky
     luci-app-openlist2
     luci-app-mosdns
     luci-app-podman

@@ -1,4 +1,4 @@
-name: sync packages kenzok8
+name: sync packages lucky
 
 on:
   schedule:
@@ -10,13 +10,8 @@ permissions:
 
 env:
   SYNC_PKGS: |
-    luci-app-openlist2@date
-    luci-app-mosdns@date
-    luci-app-homeproxy
-    openlist2
-    mosdns
-    geo2txt
-    sing-box
+    luci-app-lucky@date
+    lucky
 
 jobs:
   sync:
@@ -25,7 +20,7 @@ jobs:
       - name: checkout repository
         uses: actions/checkout@v7
 
-      - name: sync from kenzok8/small-package
+      - name: sync from gdy666/luci-app-lucky
         run: |
           has_var() { grep -qE "^$2[[:space:]]*:?=" "$1"; }
 
@@ -62,7 +57,7 @@ jobs:
           }
 
           today="$(date +%Y%m%d)"
-          git clone --depth=1 https://github.com/kenzok8/small-package "$RUNNER_TEMP/up"
+          git clone --depth=1 https://github.com/gdy666/luci-app-lucky "$RUNNER_TEMP/up"
 
           for item in $SYNC_PKGS; do
             p="${item%%@*}"
@@ -128,5 +123,5 @@ jobs:
           git add -A $pkgs
           git diff --cached --quiet && exit 0
           sha="$(git -C "$RUNNER_TEMP/up" rev-parse --short HEAD)"
-          git commit -m "chore: 同步 kenzok8/small-package ($sha)"
+          git commit -m "chore: 同步 gdy666/luci-app-lucky ($sha)"
           git push
