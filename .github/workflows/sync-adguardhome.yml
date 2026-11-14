@@ -12,6 +12,6 @@ jobs:
   sync:
     uses: ./.github/workflows/_Sync.yml
     with:
-      upstream: https://github.com/stevenjoezhang/luci-app-adguardhome
+      upstream: https://github.com/XiaoHaiSly/homeproxy
       packages: |
-        luci-app-adguardhome=.@date
+        luci-app-homeproxy=.
