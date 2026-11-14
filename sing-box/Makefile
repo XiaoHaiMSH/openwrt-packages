@@ -73,9 +73,7 @@ endef
 define Package/sing-box/description
   Sing-box is a universal proxy platform which supports hysteria, SOCKS, Shadowsocks,
   ShadowTLS, Tor, trojan, VLess, VMess, WireGuard and so on.
-
-  This package is built from the sing-box-extended fork, an extended version
-  of SagerNet/sing-box with additional features.
+  This package is built from the sing-box-extended fork.
 endef
 
 define Package/sing-box/config
