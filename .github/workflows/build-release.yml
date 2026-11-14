@@ -1,4 +1,4 @@
-name: Build & Release (hp&sb)
+name: Build Release (HP&SB)
 
 on:
   workflow_dispatch:
